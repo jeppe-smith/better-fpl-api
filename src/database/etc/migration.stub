@@ -1,0 +1,15 @@
+import * as Knex from 'knex';
+
+const TABLE_NAME = '';
+
+export async function up(knex: Knex) {
+  return knex.schema.createTable(TABLE_NAME, (t) => {
+    t.bigIncrements('id');
+    t.dateTime('created_at').notNullable();
+    t.dateTime('updated_at').notNullable();
+  });
+}
+
+export async function down(knex: Knex) {
+  return knex.schema.dropTable(TABLE_NAME);
+}
