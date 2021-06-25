@@ -1,11 +1,12 @@
 import 'dotenv/config';
+import * as fs from 'fs';
 import * as Knex from 'knex';
 
 module.exports = {
   client: 'pg',
   connection: {
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    ssl: { ca: fs.readFileSync(__dirname + '/ca-certificate.crt') },
   },
   debug: true,
   migrations: {
