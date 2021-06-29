@@ -1,12 +1,8 @@
 import 'dotenv/config';
 import * as Knex from 'knex';
 
-module.exports = {
+const base: Knex.Config = {
   client: 'pg',
-  connection: {
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  },
   debug: true,
   migrations: {
     directory: './src/database/migrations',
@@ -17,5 +13,19 @@ module.exports = {
     directory: './src/database/seeds',
     stub: './src/database/etc/seed.stub',
     extension: 'ts',
+  },
+};
+
+module.exports = {
+  development: {
+    ...base,
+    connection: process.env.DATABASE_URL,
+  },
+  production: {
+    ...base,
+    connection: {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    },
   },
 } as Knex.Config;

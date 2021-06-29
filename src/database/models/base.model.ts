@@ -5,7 +5,6 @@ export class BaseModel extends Model {
     return snakeCaseMappers();
   }
 
-  id!: number;
   createdAt!: Date;
   updatedAt!: Date;
 
