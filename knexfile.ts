@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import * as Knex from 'knex';
+import { knexSnakeCaseMappers } from 'objection';
 
 const base: Knex.Config = {
   client: 'pg',
@@ -14,6 +15,7 @@ const base: Knex.Config = {
     stub: './src/database/etc/seed.stub',
     extension: 'ts',
   },
+  ...knexSnakeCaseMappers(),
 };
 
 module.exports = {

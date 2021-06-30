@@ -1,6 +1,6 @@
 import { Model } from 'objection';
 import { BaseModel } from './base.model';
-import { TeamModel } from './team.model';
+import { TeamSeasonModel } from './team-season.model';
 
 export class FixtureModel extends BaseModel {
   static tableName = 'fixtures';
@@ -15,22 +15,24 @@ export class FixtureModel extends BaseModel {
   number!: number;
   seasonId!: number;
   started!: boolean;
+  awayTeam?: TeamSeasonModel;
+  homeTeam?: TeamSeasonModel;
 
   static relationMappings = {
     awayTeam: {
-      relation: Model.HasOneRelation,
-      modelClass: TeamModel,
+      relation: Model.BelongsToOneRelation,
+      modelClass: TeamSeasonModel,
       join: {
-        from: 'fixtures.away_team_id',
-        to: 'teams.id',
+        from: ['fixtures.awayTeamId', 'fixtures.seasonId'],
+        to: ['teamSeasons.teamId', 'teamSeasons.seasonId'],
       },
     },
     homeTeam: {
-      relation: Model.HasOneRelation,
-      modelClass: TeamModel,
+      relation: Model.BelongsToOneRelation,
+      modelClass: TeamSeasonModel,
       join: {
-        from: 'fixtures.home_team_id',
-        to: 'teams.id',
+        from: ['fixtures.homeTeamId', 'fixtures.seasonId'],
+        to: ['teamSeasons.teamId', 'teamSeasons.seasonId'],
       },
     },
   };

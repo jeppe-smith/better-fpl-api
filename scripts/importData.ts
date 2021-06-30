@@ -1,12 +1,17 @@
 import 'dotenv/config';
 
 import * as parseCsv from 'neat-csv';
+import * as downloadGitRepo from 'download-git-repo';
 import * as Knex from 'knex';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { SeasonModel } from '../src/database/models/season.model';
 import { PlayerModel } from '../src/database/models/player.model';
-import { ModelObject, PartialModelObject } from 'objection';
+import {
+  knexSnakeCaseMappers,
+  ModelObject,
+  PartialModelObject,
+} from 'objection';
 import { TeamModel } from '../src/database/models/team.model';
 import { FixtureModel } from '../src/database/models/fixture.model';
 import { GameweekModel } from '../src/database/models/gameweeks.model';
@@ -22,7 +27,7 @@ interface Season {
 const knex = Knex({
   client: 'pg',
   connection: process.env.DATABASE_URL,
-  debug: true,
+  ...knexSnakeCaseMappers(),
 });
 
 const seasons: Season[] = [
@@ -68,27 +73,37 @@ const teams = [
 ];
 
 async function main() {
-  const _season = seasons[0];
+  await downloadRepo();
 
-  await SeasonModel.query(knex).insert(
-    seasons.map<PartialModelObject<SeasonModel>>((season) => {
-      return {
-        id: season.id,
-      };
-    }),
-  );
+  await SeasonModel.query(knex)
+    .insert(
+      seasons.map<PartialModelObject<SeasonModel>>((season) => {
+        return {
+          id: season.id,
+        };
+      }),
+    )
+    .onConflict('id')
+    .ignore();
 
-  await TeamModel.query(knex).insert(
-    teams.map<PartialModelObject<TeamModel>>((team) => {
-      return {
-        id: team.id,
-        name: team.name,
-        shortName: team.short_name,
-      };
-    }),
-  );
+  await TeamModel.query(knex)
+    .insert(
+      teams.map<PartialModelObject<TeamModel>>((team) => {
+        return {
+          id: team.id,
+          name: team.name,
+          shortName: team.short_name,
+        };
+      }),
+    )
+    .onConflict('id')
+    .ignore();
 
-  await importSeason(_season);
+  for (const _season of seasons) {
+    await importSeason(_season);
+  }
+
+  await fs.rmdir(path.join(__dirname, 'tmp'), { recursive: true });
 
   process.exit(0);
 }
@@ -138,13 +153,17 @@ async function importSeason(_season: Season) {
     _fixtures.map<PartialModelObject<FixtureModel>>((_fixture) => {
       return {
         id: _fixture.code,
-        awayTeamId: teamSeasons.find((ts) => ts.id === _fixture.team_a)!.teamId,
-        homeTeamId: teamSeasons.find((ts) => ts.id === _fixture.team_h)!.teamId,
+        awayTeamId: teamSeasons.find(
+          (ts) => ts.id === parseInt(_fixture.team_a),
+        )!.teamId,
+        homeTeamId: teamSeasons.find(
+          (ts) => ts.id === parseInt(_fixture.team_h),
+        )!.teamId,
         finished: true,
         finishedProvisional: true,
-        gameweekId: _fixture.event,
+        gameweekId: parseInt(_fixture.event),
         kickoff: _fixture.kickoff_time,
-        number: _fixture.id,
+        number: parseInt(_fixture.id),
         started: true,
         seasonId: _season.id,
       };
@@ -167,12 +186,21 @@ async function importSeason(_season: Season) {
 }
 
 async function getFixtures(season: Season): Promise<any[]> {
-  const json = await fs.readFile(
-    path.join(__dirname, 'data', season.id.toString(), 'fixtures.json'),
-    'utf-8',
-  );
+  if (season.id < 2018) {
+    const json = await fs.readFile(
+      path.join(__dirname, 'data', season.id.toString(), 'fixtures.json'),
+      'utf-8',
+    );
 
-  return JSON.parse(json);
+    return JSON.parse(json);
+  } else {
+    return await parseCsv(
+      await fs.readFile(
+        path.join(__dirname, 'tmp/data', season.name, 'fixtures.csv'),
+        'utf-8',
+      ),
+    );
+  }
 }
 
 async function getGameweeks(season: Season) {
@@ -181,7 +209,7 @@ async function getGameweeks(season: Season) {
   );
 
   return files
-    .map((file) => parseInt(file.match(/\d+/g)?.[0] || ''))
+    .map((file) => parseInt(file.match(/gw(\d+)/)?.[1] || ''))
     .filter((v) => !Number.isNaN(v))
     .sort((a, b) => a - b);
 }
@@ -207,13 +235,13 @@ async function getTeamSeasons(season: Season) {
 async function getPlayerFixtures(
   _player: any,
   season: Season,
-  playerSeason: ModelObject<PlayerSeasonModel>,
-  fixtures: ModelObject<FixtureModel>[],
+  playerSeason: PlayerSeasonModel,
+  fixtures: FixtureModel[],
 ) {
   let id = `${_player.first_name}_${_player.second_name}`;
 
   if (season.id >= 2018) {
-    id += _player.id;
+    id += `_${_player.id}`;
   }
 
   const _playerFixtures = await parseCsv(
@@ -224,59 +252,70 @@ async function getPlayerFixtures(
   );
 
   return _playerFixtures.map<PartialModelObject<PlayerFixtureModel>>((pf) => {
+    const fixture = fixtures.find(
+      (f) => f.seasonId === season.id && f.number === Number(pf.fixture),
+    );
+
+    if (!fixture) {
+      console.log(
+        pf,
+        fixtures.map(({ number }) => number),
+      );
+    }
+
     return {
       playerId: playerSeason.playerId,
-      fixtureId: fixtures.find(
-        (f) => f.seasonId === season.id && f.number === Number(pf.fixture),
-      )!.id,
-      assists: Number(pf.assists),
-      attemptedPasses: Number(pf.attempted_passes),
-      bigChancesCreated: Number(pf.big_chances_created),
-      bigChancesMissed: Number(pf.big_chances_missed),
-      bonus: Number(pf.bonus),
-      bps: Number(pf.bps),
-      cleanSheets: Number(pf.clean_sheets),
-      clearancesBlocksInterceptions: Number(pf.clearances_blocks_interceptions),
-      completedPasses: Number(pf.completed_passes),
-      creativity: Number(pf.creativity),
-      dribbles: Number(pf.dribbles),
-      errorsLeadingToGoal: Number(pf.errors_leading_to_goal),
-      errorsLeadingToGoalAttempt: Number(pf.errors_leading_to_goal_attempt),
-      fouls: Number(pf.fouls),
-      goalsConceded: Number(pf.goals_conceded),
-      goalsScored: Number(pf.goals_scored),
-      ictIndex: Number(pf.ict_index),
-      influence: Number(pf.influence),
-      keyPasses: Number(pf.key_passes),
-      loanedIn: Number(pf.loaned_in),
-      loanedOut: Number(pf.loaned_out),
-      minutes: Number(pf.minutes),
-      offside: Number(pf.offside),
-      openPlayCrosses: Number(pf.open_play_crosses),
-      opponentTeam: Number(pf.opponent_team),
-      ownGoals: Number(pf.own_goals),
-      penaltiesConceded: Number(pf.penalties_conceded),
-      penaltiesMissed: Number(pf.penalties_missed),
-      penaltiesSaved: Number(pf.penalties_saved),
-      recoveries: Number(pf.recoveries),
-      redCards: Number(pf.red_cards),
-      number: Number(pf.round),
-      saves: Number(pf.saves),
-      selected: Number(pf.selected),
-      tackled: Number(pf.tackled),
-      tackles: Number(pf.tackles),
-      targetMissed: Number(pf.target_missed),
-      team_a_score: Number(pf.team_a_score),
-      team_h_score: Number(pf.team_h_score),
-      threat: Number(pf.threat),
-      totalPoints: Number(pf.total_points),
-      transfersBalance: Number(pf.transfers_balance),
-      transfersIn: Number(pf.transfers_in),
-      transfersOut: Number(pf.transfers_out),
-      value: Number(pf.value),
+      fixtureId: fixture!.id,
+      seasonId: season.id,
+      assists: numberOrUndefined(pf.assists),
+      attemptedPasses: numberOrUndefined(pf.attempted_passes),
+      bigChancesCreated: numberOrUndefined(pf.big_chances_created),
+      bigChancesMissed: numberOrUndefined(pf.big_chances_missed),
+      bonus: numberOrUndefined(pf.bonus),
+      bps: numberOrUndefined(pf.bps),
+      cleanSheets: numberOrUndefined(pf.clean_sheets),
+      clearancesBlocksInterceptions: numberOrUndefined(
+        pf.clearances_blocks_interceptions,
+      ),
+      completedPasses: numberOrUndefined(pf.completed_passes),
+      creativity: numberOrUndefined(pf.creativity),
+      dribbles: numberOrUndefined(pf.dribbles),
+      errorsLeadingToGoal: numberOrUndefined(pf.errors_leading_to_goal),
+      errorsLeadingToGoalAttempt: numberOrUndefined(
+        pf.errors_leading_to_goal_attempt,
+      ),
+      fouls: numberOrUndefined(pf.fouls),
+      goalsConceded: numberOrUndefined(pf.goals_conceded),
+      goalsScored: numberOrUndefined(pf.goals_scored),
+      ictIndex: numberOrUndefined(pf.ict_index),
+      influence: numberOrUndefined(pf.influence),
+      keyPasses: numberOrUndefined(pf.key_passes),
+      minutes: numberOrUndefined(pf.minutes),
+      offside: numberOrUndefined(pf.offside),
+      openPlayCrosses: numberOrUndefined(pf.open_play_crosses),
+      opponentTeam: numberOrUndefined(pf.opponent_team),
+      ownGoals: numberOrUndefined(pf.own_goals),
+      penaltiesConceded: numberOrUndefined(pf.penalties_conceded),
+      penaltiesMissed: numberOrUndefined(pf.penalties_missed),
+      penaltiesSaved: numberOrUndefined(pf.penalties_saved),
+      recoveries: numberOrUndefined(pf.recoveries),
+      redCards: numberOrUndefined(pf.red_cards),
+      saves: numberOrUndefined(pf.saves),
+      selected: numberOrUndefined(pf.selected),
+      tackled: numberOrUndefined(pf.tackled),
+      tackles: numberOrUndefined(pf.tackles),
+      targetMissed: numberOrUndefined(pf.target_missed),
+      team_a_score: numberOrUndefined(pf.team_a_score),
+      team_h_score: numberOrUndefined(pf.team_h_score),
+      threat: numberOrUndefined(pf.threat),
+      totalPoints: numberOrUndefined(pf.total_points),
+      transfersBalance: numberOrUndefined(pf.transfers_balance),
+      transfersIn: numberOrUndefined(pf.transfers_in),
+      transfersOut: numberOrUndefined(pf.transfers_out),
+      value: numberOrUndefined(pf.value),
       wasHome: Boolean(pf.was_home),
-      winningGoals: Number(pf.winning_goals),
-      yellowCards: Number(pf.yellow_cards),
+      winningGoals: numberOrUndefined(pf.winning_goals),
+      yellowCards: numberOrUndefined(pf.yellow_cards),
     };
   });
 }
@@ -288,6 +327,26 @@ async function getPlayers(season: Season) {
       'utf-8',
     ),
   );
+}
+
+function downloadRepo() {
+  return new Promise((resolve, reject) => {
+    downloadGitRepo(
+      'vaastav/Fantasy-Premier-League',
+      path.join(__dirname, 'tmp'),
+      (error: any) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(undefined);
+        }
+      },
+    );
+  });
+}
+
+function numberOrUndefined(v: any) {
+  return v != null ? Number(v) : undefined;
 }
 
 main();
