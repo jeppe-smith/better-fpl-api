@@ -29,7 +29,9 @@ export class PlayerModel extends BaseModel {
     return {
       id: this.id,
       firstName: this.firstName,
-      seasons: this.seasons!.map((playerSeason) => playerSeason.seasonId),
+      seasons: this.seasons!.map((playerSeason) => playerSeason.seasonId).sort(
+        (a, b) => a - b,
+      ),
       secondName: this.secondName,
       webName: this.webName,
     };

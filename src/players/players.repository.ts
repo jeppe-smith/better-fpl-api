@@ -38,6 +38,17 @@ export class PlayersRepository {
     const playerSeasons = await this.playerSeasonModel.query().where({});
   }
 
+  async findPlayerFixturesByPlayerId(seasonId: number, playerId: number) {
+    const playerSeason = await this.playerSeasonModel
+      .query()
+      .findOne({ seasonId, playerId })
+      .withGraphFetched('fixtures.fixture.[awayTeam.team, homeTeam.team]');
+
+    return playerSeason.fixtures!.sort(
+      (a, b) => a.fixture!.gameweekId - b.fixture!.gameweekId,
+    );
+  }
+
   async findPlayerFixtures(seasonId: number, id: number) {
     const player = await this.playerSeasonModel
       .query()

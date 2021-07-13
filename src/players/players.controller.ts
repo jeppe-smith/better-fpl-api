@@ -11,4 +11,17 @@ export class PlayersController {
 
     return player.toResponseObject();
   }
+
+  @Get(':id/seasons/:season/fixtures')
+  async getPlayerFixtures(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('season', ParseIntPipe) season: number,
+  ) {
+    const playerFixtures =
+      await this.playersRepository.findPlayerFixturesByPlayerId(season, id);
+
+    return playerFixtures.map((playerFixture) =>
+      playerFixture.toResponseObject(),
+    );
+  }
 }
