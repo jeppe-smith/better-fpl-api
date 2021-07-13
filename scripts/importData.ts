@@ -73,42 +73,51 @@ const teams = [
 ];
 
 async function main() {
-  await downloadRepo();
+  // await downloadRepo();
 
-  await SeasonModel.query(knex)
-    .insert(
-      seasons.map<PartialModelObject<SeasonModel>>((season) => {
-        return {
-          id: season.id,
-        };
-      }),
-    )
-    .onConflict('id')
-    .ignore();
+  try {
+    await SeasonModel.query(knex)
+      .insert(
+        seasons.map<PartialModelObject<SeasonModel>>((season) => {
+          return {
+            id: season.id,
+          };
+        }),
+      )
+      .onConflict('id')
+      .ignore();
 
-  await TeamModel.query(knex)
-    .insert(
-      teams.map<PartialModelObject<TeamModel>>((team) => {
-        return {
-          id: team.id,
-          name: team.name,
-          shortName: team.short_name,
-        };
-      }),
-    )
-    .onConflict('id')
-    .ignore();
+    await TeamModel.query(knex)
+      .insert(
+        teams.map<PartialModelObject<TeamModel>>((team) => {
+          return {
+            id: team.id,
+            name: team.name,
+            shortName: team.short_name,
+          };
+        }),
+      )
+      .onConflict('id')
+      .ignore();
 
-  for (const _season of seasons) {
-    await importSeason(_season);
+    for (const _season of seasons) {
+      await importSeason(_season);
+    }
+
+    await fs.rmdir(path.join(__dirname, 'tmp'), { recursive: true });
+
+    console.log('all done');
+
+    process.exit(0);
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
   }
-
-  await fs.rmdir(path.join(__dirname, 'tmp'), { recursive: true });
-
-  process.exit(0);
 }
 
 async function importSeason(_season: Season) {
+  console.log('doing ' + _season.name);
+
   const _players = await getPlayers(_season);
   const _gameweeks = await getGameweeks(_season);
   const _fixtures = await getFixtures(_season);
@@ -172,7 +181,9 @@ async function importSeason(_season: Season) {
 
   const _playersFixtures = await Promise.all(
     playerSeasons.map(async (playerSeason) => {
-      const _player = _players.find(({ id }) => playerSeason.id)!;
+      const _player = _players.find(
+        ({ code }) => parseInt(code) === playerSeason.playerId,
+      )!;
 
       return await getPlayerFixtures(_player, _season, playerSeason, fixtures);
     }),
@@ -238,6 +249,11 @@ async function getPlayerFixtures(
   playerSeason: PlayerSeasonModel,
   fixtures: FixtureModel[],
 ) {
+  if (parseInt(_player.code) !== playerSeason.playerId) {
+    console.log(_player, playerSeason);
+    throw Error('wrong');
+  }
+
   let id = `${_player.first_name}_${_player.second_name}`;
 
   if (season.id >= 2018) {
@@ -313,7 +329,7 @@ async function getPlayerFixtures(
       transfersIn: numberOrUndefined(pf.transfers_in),
       transfersOut: numberOrUndefined(pf.transfers_out),
       value: numberOrUndefined(pf.value),
-      wasHome: Boolean(pf.was_home),
+      wasHome: pf.was_home === 'True',
       winningGoals: numberOrUndefined(pf.winning_goals),
       yellowCards: numberOrUndefined(pf.yellow_cards),
     };

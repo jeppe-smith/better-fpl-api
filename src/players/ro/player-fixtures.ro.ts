@@ -1,7 +1,7 @@
 export interface PlayerFixturesRO {
-  fixture: number;
   assists: number;
   attemptedPasses: number;
+  awayTeam: string;
   bigChancesCreated: number;
   bigChancesMissed: number;
   bonus: number;
@@ -13,13 +13,16 @@ export interface PlayerFixturesRO {
   dribbles: number;
   errorsLeadingToGoal: number;
   errorsLeadingToGoalAttempt: number;
+  fixture: number;
   fouls: number;
   gameweek: number;
   goalsConceded: number;
   goalsScored: number;
+  homeTeam: string;
   ictIndex: number;
   influence: number;
   keyPasses: number;
+  kickoff: Date;
   minutes: number;
   offside: number;
   openPlayCrosses: number;
@@ -32,6 +35,7 @@ export interface PlayerFixturesRO {
   redCards: number;
   round: number;
   saves: number;
+  season: number;
   selected: number;
   tackled: number;
   tackles: number;
@@ -47,6 +51,4 @@ export interface PlayerFixturesRO {
   wasHome: boolean;
   winningGoals: number;
   yellowCards: number;
-  homeTeam: string;
-  awayTeam: string;
 }

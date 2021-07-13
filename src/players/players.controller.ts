@@ -1,4 +1,13 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import { PlayerFixturesQuery } from './player-fixtures.query';
 import { PlayersRepository } from './players.repository';
 
 @Controller('players')
@@ -10,6 +19,20 @@ export class PlayersController {
     const player = await this.playersRepository.findPlayerById(id);
 
     return player.toResponseObject();
+  }
+
+  @Get(':id/latest-fixtures')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getLatestPlayerFixtures(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: PlayerFixturesQuery,
+  ) {
+    const playerFixtures =
+      await this.playersRepository.findLatestPlayerFixtures(id, query.amount);
+
+    return playerFixtures.map((playerFixture) =>
+      playerFixture.toResponseObject(),
+    );
   }
 
   @Get(':id/seasons/:season/fixtures')

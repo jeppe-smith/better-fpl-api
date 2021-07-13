@@ -74,9 +74,9 @@ export class PlayerFixtureModel extends BaseModel {
 
   toResponseObject(): PlayerFixturesRO {
     return {
-      fixture: this.fixtureId,
       assists: this.assists,
       attemptedPasses: this.attemptedPasses,
+      awayTeam: this.fixture!.awayTeam!.team!.shortName,
       bigChancesCreated: this.bigChancesCreated,
       bigChancesMissed: this.bigChancesMissed,
       bonus: this.bonus,
@@ -88,13 +88,16 @@ export class PlayerFixtureModel extends BaseModel {
       dribbles: this.dribbles,
       errorsLeadingToGoal: this.errorsLeadingToGoal,
       errorsLeadingToGoalAttempt: this.errorsLeadingToGoalAttempt,
+      fixture: this.fixtureId,
       fouls: this.fouls,
       gameweek: this.fixture!.gameweekId,
       goalsConceded: this.goalsConceded,
       goalsScored: this.goalsScored,
+      homeTeam: this.fixture!.homeTeam!.team!.shortName,
       ictIndex: this.ictIndex,
       influence: this.influence,
       keyPasses: this.keyPasses,
+      kickoff: this.fixture!.kickoff,
       minutes: this.minutes,
       offside: this.offside,
       openPlayCrosses: this.openPlayCrosses,
@@ -107,6 +110,7 @@ export class PlayerFixtureModel extends BaseModel {
       redCards: this.redCards,
       round: this.round,
       saves: this.saves,
+      season: this.seasonId,
       selected: this.selected,
       tackled: this.tackled,
       tackles: this.tackles,
@@ -122,8 +126,6 @@ export class PlayerFixtureModel extends BaseModel {
       wasHome: this.wasHome,
       winningGoals: this.winningGoals,
       yellowCards: this.yellowCards,
-      awayTeam: this.fixture!.awayTeam!.team!.shortName,
-      homeTeam: this.fixture!.homeTeam!.team!.shortName,
     };
   }
 }

@@ -1,15 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ModelClass } from 'objection';
-import { PlayerSeasonModel } from 'src/database/models/player-season.model';
 import { PlayerModel } from 'src/database/models/player.model';
+import { PlayerSeasonModel } from 'src/database/models/player-season.model';
+import { PlayerFixtureModel } from 'src/database/models/player-fixture.model';
 
 @Injectable()
 export class PlayersRepository {
   constructor(
-    @Inject(PlayerSeasonModel.name)
-    private readonly playerSeasonModel: ModelClass<PlayerSeasonModel>,
     @Inject(PlayerModel.name)
     private readonly playerModel: ModelClass<PlayerModel>,
+    @Inject(PlayerSeasonModel.name)
+    private readonly playerSeasonModel: ModelClass<PlayerSeasonModel>,
+    @Inject(PlayerFixtureModel.name)
+    private readonly playerFixtureModel: ModelClass<PlayerFixtureModel>,
   ) {}
 
   async findPlayerById(playerId: number) {
@@ -58,5 +61,15 @@ export class PlayersRepository {
     return player.fixtures!.sort(
       (a, b) => a.fixture!.gameweekId - b.fixture!.gameweekId,
     );
+  }
+
+  async findLatestPlayerFixtures(playerId: number, amount: number) {
+    return await this.playerFixtureModel
+      .query()
+      .where({ playerId })
+      .joinRelated('fixture')
+      .orderBy('fixture.kickoff', 'desc')
+      .limit(amount)
+      .withGraphFetched('fixture.[awayTeam.team, homeTeam.team]');
   }
 }
