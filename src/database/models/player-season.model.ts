@@ -1,5 +1,5 @@
 import { Model } from 'objection';
-import { PlayersRO } from 'src/players/ro/players.ro';
+import { PlayerSeasonsRO } from 'src/players/ro/player-seasons.ro';
 import { BaseModel } from './base.model';
 import { PlayerFixtureModel } from './player-fixture.model';
 import { PlayerModel } from './player.model';
@@ -40,9 +40,9 @@ export class PlayerSeasonModel extends BaseModel {
     };
   }
 
-  toReponseObject(): PlayersRO {
+  toResponseObject(): PlayerSeasonsRO {
     return {
-      code: this.playerId,
+      uid: this.playerId,
       id: this.id,
       season: this.seasonId,
       firstName: this.player!.firstName,
