@@ -72,4 +72,16 @@ export class PlayersRepository {
       .limit(amount)
       .withGraphFetched('fixture.[awayTeam.team, homeTeam.team]');
   }
+
+  async findPlayerFixturesByOpponent(playerId: number, opponentId: number) {
+    const playerFixtures = await this.playerFixtureModel
+      .query()
+      .joinRelated('fixture')
+      .where({ playerId, 'fixture.homeTeamId': opponentId })
+      .orWhere({ playerId, 'fixture.awayTeamId': opponentId })
+      .orderBy('fixture.kickoff', 'desc')
+      .withGraphFetched('fixture.[awayTeam.team, homeTeam.team]');
+
+    return playerFixtures.filter(({ minutes }) => minutes > 0);
+  }
 }

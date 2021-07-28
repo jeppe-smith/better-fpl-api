@@ -47,4 +47,20 @@ export class PlayersController {
       playerFixture.toResponseObject(),
     );
   }
+
+  @Get(':playerId/fixtures/opponent/:opponentId')
+  async getPlayerPerformancesAgainstTeam(
+    @Param('playerId', ParseIntPipe) playerId: number,
+    @Param('opponentId', ParseIntPipe) opponentId: number,
+  ) {
+    const playerFixtures =
+      await this.playersRepository.findPlayerFixturesByOpponent(
+        playerId,
+        opponentId,
+      );
+
+    return playerFixtures.map((playerFixture) =>
+      playerFixture.toResponseObject(),
+    );
+  }
 }
