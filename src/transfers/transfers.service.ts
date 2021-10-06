@@ -10,8 +10,7 @@ export class TransfersService {
     private readonly transferModel: ModelClass<TransferModel>,
   ) {}
 
-  async create(data: CreateTransferDTO | CreateTransferDTO[]) {
-    // @ts-ignore
+  async create(data: CreateTransferDTO[]) {
     await this.transferModel.query().insert(data);
   }
 
