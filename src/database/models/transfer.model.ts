@@ -15,6 +15,7 @@ export class TransferModel extends BaseModel {
       required: ['chip', 'gameweek_id', 'player_in', 'player_out'],
       properties: {
         chip: { enum: ['freehit', 'wildcard', null] },
+        entry_id: { type: 'string' },
         gameweek_id: { type: 'integer' },
         player_in: { type: 'integer' },
         player_out: { type: 'integer' },
