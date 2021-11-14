@@ -6,10 +6,6 @@ export class CreateTransferDTO {
 
   @IsInt()
   @IsNotEmpty()
-  entry_id!: number;
-
-  @IsInt()
-  @IsNotEmpty()
   gameweek_id!: number;
 
   @IsInt()

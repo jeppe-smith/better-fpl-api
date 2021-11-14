@@ -5,7 +5,6 @@ export class TransferModel extends BaseModel {
 
   id!: number;
   chip!: 'freehit' | 'wildcard' | null;
-  entryId!: number;
   gameweekId!: number;
   playerIn!: number;
   playerOut!: number;
@@ -13,10 +12,9 @@ export class TransferModel extends BaseModel {
   static get jsonSchema() {
     return {
       type: 'object',
-      required: ['chip', 'entry_id', 'gameweek_id', 'player_in', 'player_out'],
+      required: ['chip', 'gameweek_id', 'player_in', 'player_out'],
       properties: {
         chip: { enum: ['freehit', 'wildcard', null] },
-        entry_id: { type: 'integer' },
         gameweek_id: { type: 'integer' },
         player_in: { type: 'integer' },
         player_out: { type: 'integer' },
