@@ -19,6 +19,7 @@ export class PlayerFixtureModel extends BaseModel {
   bigChancesMissed!: number;
   bonus!: number;
   bps!: number;
+  chanceOfPlaying!: number;
   cleanSheets!: number;
   clearancesBlocksInterceptions!: number;
   completedPasses!: number;
@@ -45,6 +46,7 @@ export class PlayerFixtureModel extends BaseModel {
   round!: number;
   saves!: number;
   selected!: number;
+  status!: string | null;
   tackled!: number;
   tackles!: number;
   targetMissed!: number;
